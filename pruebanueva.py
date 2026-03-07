@@ -11,7 +11,8 @@ import subprocess
  
 # Get a list of all CSV files in a directory
 csv_files = glob.glob("data/venta_perdida/*.csv")
-venta_semanal = glob.glob("data/venta-semanal/*.xlsx")excel = "data/MASTER.xlsx"
+venta_semanal = glob.glob("data/venta-semanal/*.xlsx")
+excel = "data/MASTER.xlsx"
 MASTER = pd.read_excel(excel)
  
 st.set_page_config(page_title="Reporte de Venta Pérdida Cigarros y RRPS", page_icon="🚬", layout="wide", initial_sidebar_state="expanded")
@@ -931,6 +932,7 @@ with kpi_top:
     with c9:
         nombre, vp = kpis["Mercado"]
         st.metric("🛒 Mercado con mayor VP (Últimas 3 semanas)", f"${vp:,.0f}", delta=nombre)
+
 
 
 
