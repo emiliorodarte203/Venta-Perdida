@@ -10,7 +10,7 @@ import subprocess
 
  
 # Get a list of all CSV files in a directory
-csv_files = glob.glob('C:/Users/erodarteg/OneDrive - ICONN/Cigarros 2026/Venta Pérdida (317B)/*.csv')
+csv_files = glob.glob("data/venta_perdida/*.csv")
 venta_semanal = glob.glob("data/venta-semanal/*.xlsx")excel = "data/MASTER.xlsx"
 MASTER = pd.read_excel(excel)
  
@@ -931,5 +931,6 @@ with kpi_top:
     with c9:
         nombre, vp = kpis["Mercado"]
         st.metric("🛒 Mercado con mayor VP (Últimas 3 semanas)", f"${vp:,.0f}", delta=nombre)
+
 
 
