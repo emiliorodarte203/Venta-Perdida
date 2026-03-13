@@ -192,6 +192,32 @@ familia_dict = MASTER.set_index('ARTICULO')['FAMILIA'].to_dict()
 segmento_dict = MASTER.set_index('ARTICULO')['SEGMENTO'].to_dict()
 subcategoria_dict = MASTER.set_index('ARTICULO')['SUBCATEGORIA'].to_dict()
 proveedor_dict = MASTER.set_index('ARTICULO')['PROVEEDOR'].to_dict()
+
+# === Helpers para detección de columnas y filtro por códigos ===
+def pick_col(df, opciones):
+    return next((c for c in opciones if c in df.columns), None)
+
+def filtrar_por_codigos(df, col_codigo, codigos, modo="Exacta"):
+    if not codigos:
+        return df
+    s = df[col_codigo].astype(str)
+    if modo == "Exacta":
+        mask = s.isin(codigos)
+    elif modo == "Contiene (parcial)":
+        mask = False
+        for c in codigos:
+            mask = mask | s.str.contains(c, case=False, na=False)
+    elif modo == "Empieza con":
+        mask = False
+        for c in codigos:
+            mask = mask | s.str.startswith(c, na=False)
+    elif modo == "Termina con":
+        mask = False
+        for c in codigos:
+            mask = mask | s.str.endswith(c, na=False)
+    else:
+        mask = s.isin(codigos)
+    return df[mask]
  
 VENTA_PERDIDA['FAMILIA'] = VENTA_PERDIDA['ARTICULO'].map(familia_dict)
 VENTA_PERDIDA['SEGMENTO'] = VENTA_PERDIDA['ARTICULO'].map(segmento_dict)
@@ -272,8 +298,28 @@ else:
 #---------------------------------------------------------------------
 st.sidebar.image("https://raw.githubusercontent.com/Edwinale20/Sdkiap/main/folder/el-logo.png", width=170)
 st.sidebar.title("Filtros 🔠")
- 
- 
+
+# --- Filtro de DESCRIPCIÓN (único filtro que quieres) ---
+
+st.sidebar.subheader("Descripción")
+
+# Detectar la columna de descripción (con o sin acento)
+col_desc = pick_col(MASTER, ["DESCRIPCIÓN", "DESCRIPCION", "Descripción", "descripcion"])
+if col_desc is None:
+    st.sidebar.warning("No se encontró la columna de DESCRIPCIÓN en MASTER.")
+    opciones_desc = []
+    seleccion_desc = []
+else:
+    opciones_desc = sorted(
+        MASTER[col_desc].dropna().astype(str).unique().tolist()
+    )
+
+    seleccion_desc = st.sidebar.multiselect(
+        "Seleccione el Articulo",
+        options=opciones_desc,
+        default=[]
+    )
+
 # Paso 1: Crear una lista de opciones para el filtro, incluyendo "Ninguno"
 opciones_proveedor = ['Ninguno'] + list(VENTA_PERDIDA['PROVEEDOR'].unique())
 proveedor = st.sidebar.selectbox('Seleccione el Proveedor', opciones_proveedor)
@@ -347,7 +393,25 @@ if familia != 'Ninguno':
 if categoria != 'Ninguno':
     df_venta_perdida_filtrada = df_venta_perdida_filtrada[df_venta_perdida_filtrada['SUBCATEGORIA'] == categoria]
     df_venta_filtrada = df_venta_filtrada[df_venta_filtrada['SUBCATEGORIA'] == categoria]
- 
+
+ # --- Aplicar filtro de descripción (si seleccionó algo) ---
+if seleccion_desc:
+    MASTER['ARTICULO'] = MASTER['ARTICULO'].astype(str)
+
+    articulos_por_desc = set(
+        MASTER.loc[MASTER[col_desc].isin(seleccion_desc), 'ARTICULO'].astype(str)
+    )
+
+    df_venta_perdida_filtrada['ARTICULO'] = df_venta_perdida_filtrada['ARTICULO'].astype(str)
+    df_venta_filtrada['ARTICULO'] = df_venta_filtrada['ARTICULO'].astype(str)
+
+    df_venta_perdida_filtrada = df_venta_perdida_filtrada[
+        df_venta_perdida_filtrada['ARTICULO'].isin(articulos_por_desc)
+    ]
+
+    df_venta_filtrada = df_venta_filtrada[
+        df_venta_filtrada['ARTICULO'].isin(articulos_por_desc)
+    ]
 
 # Modificar la columna 'Semana Contable' en ambos DataFrames
 # Semana Contable se queda como texto ordenable: YYYY-WWW (ej: 2025-W52, 2026-W01)
@@ -932,7 +996,3 @@ with kpi_top:
     with c9:
         nombre, vp = kpis["Mercado"]
         st.metric("🛒 Mercado con mayor VP (Últimas 3 semanas)", f"${vp:,.0f}", delta=nombre)
-
-
-
-
